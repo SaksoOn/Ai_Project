@@ -1,0 +1,19 @@
+{
+  "name": "@toolworks/licensing",
+  "version": "0.1.0",
+  "private": true,
+  "description": "체험 기간 + Gumroad 라이선스 검증. 모든 확장이 공유한다.",
+  "type": "commonjs",
+  "main": "dist/src/index.js",
+  "types": "dist/src/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "tsc -p tsconfig.json && node --test dist/test/*.test.js",
+    "clean": "rm -rf dist"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "typescript": "^5.7.0"
+  },
+  "license": "UNLICENSED"
+}
