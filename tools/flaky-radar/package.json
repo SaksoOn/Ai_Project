@@ -1,0 +1,86 @@
+{
+  "name": "flaky-radar",
+  "displayName": "Flaky Test Radar",
+  "description": "불안정한(flaky) 테스트를 찾아냅니다. 전부 로컬에서 동작하며 코드가 밖으로 나가지 않습니다.",
+  "version": "0.1.0",
+  "private": true,
+  "publisher": "TBD",
+  "engines": { "vscode": "^1.90.0" },
+  "categories": ["Testing"],
+  "keywords": ["flaky", "flaky test", "intermittent", "junit", "test history"],
+  "activationEvents": ["onStartupFinished"],
+  "main": "./dist/src/extension.js",
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "flakyRadar",
+          "title": "Flaky Test Radar",
+          "icon": "$(pulse)"
+        }
+      ]
+    },
+    "views": {
+      "flakyRadar": [
+        {
+          "id": "flakyRadar.verdicts",
+          "name": "불안정한 테스트"
+        }
+      ]
+    },
+    "commands": [
+      { "command": "flakyRadar.refresh", "title": "Flaky Radar: 새로 분석", "icon": "$(refresh)" },
+      { "command": "flakyRadar.enterLicense", "title": "Flaky Radar: 라이선스 키 입력" },
+      { "command": "flakyRadar.buy", "title": "Flaky Radar: 구매하기" },
+      { "command": "flakyRadar.clearHistory", "title": "Flaky Radar: 실행 이력 지우기" },
+      { "command": "flakyRadar.showStatus", "title": "Flaky Radar: 라이선스 상태" }
+    ],
+    "menus": {
+      "view/title": [
+        { "command": "flakyRadar.refresh", "when": "view == flakyRadar.verdicts", "group": "navigation" }
+      ]
+    },
+    "configuration": {
+      "title": "Flaky Test Radar",
+      "properties": {
+        "flakyRadar.resultPatterns": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": [
+            "**/junit*.xml",
+            "**/test-results*.xml",
+            "**/TEST-*.xml",
+            "**/test-results/**/*.xml",
+            "**/surefire-reports/*.xml"
+          ],
+          "description": "감시할 JUnit XML 결과 파일 경로. 쓰시는 테스트 러너가 결과를 내보내는 위치에 맞춰 조정하세요."
+        },
+        "flakyRadar.minRuns": {
+          "type": "number",
+          "default": 2,
+          "description": "이 횟수 미만으로 실행된 테스트는 판정하지 않습니다."
+        },
+        "flakyRadar.maxRuns": {
+          "type": "number",
+          "default": 200,
+          "description": "보관할 최대 실행 횟수. 오래된 것부터 버립니다."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "tsc -p tsconfig.test.json && node --test dist/test/*.test.js",
+    "clean": "rm -rf dist"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "@types/vscode": "^1.90.0",
+    "typescript": "^5.7.0"
+  },
+  "dependencies": {
+    "@toolworks/licensing": "file:../../shared/licensing",
+    "fast-xml-parser": "^4.5.0"
+  },
+  "license": "UNLICENSED"
+}

@@ -1,0 +1,6 @@
+{
+  "extends": "./tsconfig.json",
+  "comment": "테스트는 VS Code 없이 돈다. extension.ts는 vscode 런타임이 필요하므로 뺀다.",
+  "include": ["src/**/*.ts", "test/**/*.ts"],
+  "exclude": ["src/extension.ts"]
+}
