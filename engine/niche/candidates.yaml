@@ -117,5 +117,119 @@ candidates:
         source: "설계 원칙 1 위배"
     notes: "탈락. 경쟁·비용·프라이버시 삼중 위배. 매력적으로 보여서 오히려 위험한 후보."
 
-  # ---- 사용자 마찰 목록이 들어오면 여기에 최우선으로 추가한다 ----
-  # 사용자가 실제로 겪는 통증은 검증 비용이 0이다. APPROVALS.md 요청 #1 참조.
+  # ══════════════════════════════════════════════════════════════════
+  # 사용자 마찰 목록 (2026-08-05 접수). 검증 비용이 0이므로 최우선으로 채점한다.
+  # ══════════════════════════════════════════════════════════════════
+
+  - id: user-password-vault
+    name: "[사용자] 계정·비밀번호 관리"
+    target: "여러 사이트 계정을 쓰는 모든 사람"
+    pain: >
+      사이트가 늘어나면서 계정·암호를 계속 잊는다. 주기적으로 바꿔야 하고
+      이전 암호를 재사용할 수 없는 경우엔 더 심하다. 브라우저 자동저장을 쓰지만
+      그 브라우저를 안 쓸 때 또 막힌다.
+    category: security
+    scores:
+      pain_frequency: 8
+      free_alternative_pressure: 10  # ← 탈락 사유
+      willingness_to_pay: 5
+      local_feasibility: 6
+      search_demand: 8
+      maintenance_burden: 9
+    evidence:
+      - claim: "Bitwarden 무료 티어가 항목 무제한·기기 무제한·크로스 디바이스 자동 동기화를 제공한다. '브라우저를 안 쓸 때 막힌다'는 통증을 정확히, 무료로 해결한다"
+        source: "https://bitwarden.com/products/personal/"
+      - claim: "1Password·KeePass·브라우저 내장 관리자까지 대체재가 포화 상태다"
+        source: "https://my-bitwarden.com/pricing/"
+    notes: >
+      탈락. 그리고 무료 대체재가 없었더라도 만들지 않았을 영역이다.
+      자격증명 관리는 취약점 하나가 곧바로 사용자 계정 유출로 이어진다.
+      자동 생산 제품이 질 책임이 아니다 — 급여 정산 도구를 자른 것과 같은 논리의 더 심한 버전이다.
+      ※ 사용자에게는 만들지 말고 Bitwarden 무료를 쓰시라고 안내한다.
+
+  - id: user-credential-expiry
+    name: "[사용자] 비밀번호 만료 주기 추적"
+    target: "주기적 변경이 강제되는 계정을 여러 개 쓰는 실무자"
+    pain: "만료 전에 미리 알려주는 기능이 어느 관리자에도 없어서 매번 만료된 뒤에 안다"
+    category: security
+    scores:
+      pain_frequency: 5
+      free_alternative_pressure: 6
+      willingness_to_pay: 4
+      local_feasibility: 7
+      search_demand: 3
+      maintenance_burden: 8
+    evidence:
+      - claim: "비밀번호 만료 알림은 Bitwarden 커뮤니티에서 반복 요청되는 미구현 기능이다. 즉 구멍이 실재한다"
+        source: "https://community.bitwarden.com/t/hopefully-bitwarden-will-add-password-rotation-reminders/58695"
+      - claim: "다만 사용자들이 Bitwarden CLI와 커스텀 필드로 직접 스크립트를 짜 우회하고 있다"
+        source: "https://community.bitwarden.com/t/password-vault-item-expiration-date/162?page=2"
+    notes: >
+      구멍은 실재하지만 제품이 되기 어렵다. 구현하려면 Bitwarden CLI를 감싸야 하는데
+      그러면 남의 API 변경에 영구히 끌려다니고, 자격증명을 다루는 보안 리스크는 그대로 남는다.
+      게다가 검색 수요가 거의 없어 마켓플레이스 유입을 기대할 수 없다.
+
+  - id: user-weekly-runbook
+    name: "[사용자] 주간 반복업무 시스템화"
+    target: "매주 같은 순서로 여러 작업을 반복하는 실무자"
+    pain: >
+      매주 하는 반복 업무가 있는데 순서와 조건을 머리로 기억한다.
+      빠뜨리기 쉽고, 남에게 넘기기도 어렵다.
+    category: productivity
+    scores:
+      pain_frequency: 8
+      free_alternative_pressure: 7
+      willingness_to_pay: 5
+      local_feasibility: 9
+      search_demand: 4
+      maintenance_burden: 3
+    evidence:
+      - claim: "VS Code Tasks·npm scripts·Makefile·cron 등 무료 수단이 이미 많지만, '체크리스트 + 실행 + 이력'을 하나로 묶은 로컬 도구는 드물다"
+        source: "판단 — 마켓플레이스 실검색으로 재확인 필요"
+    notes: >
+      다섯 개 중 유일하게 하드 필터를 통과할 여지가 있다. 단 **지금 형태는 너무 범용이다.**
+      '범용 가계부'를 잘랐던 것과 같은 함정에 빠질 수 있다.
+      살리려면 '어떤 직무의, 어떤 주간 업무인지'로 좁혀야 한다.
+      검색 수요 4점은 치명적이다 — 사람들이 이 도구를 뭐라고 검색할지 모른다는 뜻이다.
+
+  - id: user-file-favorites
+    name: "[사용자] 파일·폴더 즐겨찾기"
+    target: "여러 프로젝트를 오가는 개발자"
+    pain: "자주 쓰는 폴더·파일을 매번 찾아 들어간다. 한 곳에서 모아 보고 싶다"
+    category: productivity
+    scores:
+      pain_frequency: 7
+      free_alternative_pressure: 10  # ← 탈락 사유
+      willingness_to_pay: 2
+      local_feasibility: 10
+      search_demand: 6
+      maintenance_burden: 2
+    evidence:
+      - claim: "정확히 같은 기능의 무료 확장이 최소 5개 존재한다 — Bookmarks for VS Code, Favorite Files, Project Bookmarks, Favorites, CodeMark. 전부 무료이고 파일·폴더 즐겨찾기와 전역/워크스페이스 범위를 지원한다"
+        source: "https://marketplace.visualstudio.com/items?itemName=lxuancheng.favorite-files"
+    notes: >
+      탈락. 무료 대체재가 다섯 개나 있다. 게다가 이런 편의 기능에는 지불 의사가 거의 없다.
+      ※ 사용자에게는 위 무료 확장 중 하나를 쓰시라고 안내한다.
+
+  - id: user-manual-finder
+    name: "[사용자] 매뉴얼·문서 검색"
+    target: "흩어진 사내 문서·매뉴얼을 찾아야 하는 실무자"
+    pain: "필요한 매뉴얼이 어디 있는지 몰라 매번 찾아 헤맨다"
+    category: productivity
+    scores:
+      pain_frequency: 6
+      free_alternative_pressure: 8  # ← 탈락 사유
+      willingness_to_pay: 5
+      local_feasibility: 5
+      search_demand: 5
+      maintenance_burden: 5
+    evidence:
+      - claim: "ripgrep, VS Code 전역 검색, Everything(Windows), Obsidian 등 강력한 무료 전문 검색 수단이 이미 널려 있다"
+        source: "https://github.com/BurntSushi/ripgrep"
+    notes: >
+      탈락. 단순 키워드 검색은 무료 도구가 이미 잘 한다.
+      차별화하려면 의미 기반 검색이어야 하는데, 그러면 외부 LLM API가 필요해져
+      설계 원칙 1(전부 로컬)을 위배하고 운영비가 생긴다. 로컬 임베딩 모델은 확장에 넣기엔 너무 무겁다.
+
+  # 사용자 마찰 #5 "간단 프로그램은 직접 만들어 쓰는 것도 방법"은 니치가 아니라 방법론이라
+  # 채점 대상에서 제외했다. 다만 옳은 지적이고, 별도로 다룬다.
