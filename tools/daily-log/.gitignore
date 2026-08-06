@@ -1,0 +1,5 @@
+config.toml
+data/
+queue/
+__pycache__/
+*.pyc

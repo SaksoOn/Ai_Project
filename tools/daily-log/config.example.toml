@@ -1,0 +1,31 @@
+# config.toml 로 복사해서 쓰세요. config.toml 은 git에 올라가지 않습니다.
+# 비밀번호나 접속정보는 필요 없습니다 — 이미 로그인된 Outlook을 그대로 씁니다.
+
+[me]
+# 본인 메일 주소. 이게 "내가 To인 메일"을 가르는 기준입니다.
+email = "본인@회사.com"
+
+# 부서 공용 주소. 여러 개면 배열로 넣으세요.
+department_addresses = ["부서메일@회사.com"]
+
+[collect]
+include_sent = true          # 내가 보낸 메일
+include_to = true            # 내가 To 로 받은 메일
+include_department = true    # 부서로 온 메일
+include_cc = false           # 나만 참조된 메일 — 대개 업무가 아니라 기본 꺼둠
+include_calendar = true      # 일정
+lookback_days = 0            # 0 = 오늘만. 1이면 어제까지 포함
+
+[learn]
+# 같은 상대를 이 횟수 이상 봤고, 그때마다 전부 지웠다면 다음부터 자동으로 뺍니다.
+# 보수적으로 잡혀 있습니다 — 잘못 빼면 사용자가 그 사실조차 모르기 때문입니다.
+min_observations = 5
+drop_ratio = 1.0
+
+[report]
+# 주간 보고 초안의 수신자. 비워두면 빈 채로 초안만 뜹니다.
+to = ""
+
+[paths]
+data_dir = "data"    # 기록·학습 데이터 (외부로 나가지 않음)
+queue_dir = "queue"  # 매일 만들어지는 대기열 엑셀
