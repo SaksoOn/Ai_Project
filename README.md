@@ -64,9 +64,9 @@
 ## 명령어
 
 ```bash
-pip install openpyxl PyYAML
+pip install openpyxl PyYAML formulas
 python3 -m engine.products.build     # dist/ 에 두 시트 생성
-python3 -m engine.products.verify    # 수식을 실제 계산시켜 검증 (formulas 필요, 수 분 소요)
+python3 -m engine.products.verify    # 수식을 실제 계산시켜 검증 (formulas 사용, 수 분 소요)
 ```
 
 ## 이전 작업

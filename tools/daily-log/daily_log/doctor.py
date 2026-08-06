@@ -12,9 +12,13 @@ import datetime as dt
 import pathlib
 import sys
 
-OK = "✓"
-FAIL = "✗"
+from .console import FAIL, PASS as OK
+
 WARN = "!"
+
+# config.example.toml 을 복사만 하고 안 고친 상태를 잡아내기 위한 값.
+EXAMPLE_MY_ADDRESS = "본인@회사.com"
+EXAMPLE_DEPARTMENT_ADDRESS = "부서메일@회사.com"
 
 
 class Report:
@@ -89,9 +93,29 @@ def _check_config(report: Report, config_path: pathlib.Path):
         report.fail("config.toml", f"읽지 못했습니다: {exc}", blocking=True)
         return None
 
-    report.ok("config.toml", f"내 주소 {cfg.inclusion.my_addresses[0]}")
-    if cfg.inclusion.department_addresses:
-        report.ok("부서 주소", ", ".join(cfg.inclusion.department_addresses))
+    my_address = cfg.inclusion.my_addresses[0]
+    if my_address.strip().casefold() == EXAMPLE_MY_ADDRESS.casefold():
+        # 이걸 놓치면 받은 메일이 한 건도 안 걸리는데, 사용자는 "원래 이런가 보다" 한다.
+        report.fail(
+            "config.toml",
+            f"[me] email 이 예시값 그대로입니다 ({my_address}) — "
+            "본인 주소로 바꾸지 않으면 받은 메일이 하나도 안 잡힙니다",
+        )
+    else:
+        report.ok("config.toml", f"내 주소 {my_address}")
+
+    departments = cfg.inclusion.department_addresses
+    example_departments = [
+        a for a in departments if a.strip().casefold() == EXAMPLE_DEPARTMENT_ADDRESS.casefold()
+    ]
+    if example_departments:
+        report.fail(
+            "부서 주소",
+            f"예시값 그대로입니다 ({', '.join(example_departments)}) — "
+            "실제 부서 주소로 바꾸거나, 안 쓰면 빈 배열로 두세요",
+        )
+    elif departments:
+        report.ok("부서 주소", ", ".join(departments))
     else:
         report.warn("부서 주소", "비어 있음 — 부서로 온 메일은 안 잡힙니다")
     return cfg
@@ -190,9 +214,11 @@ def run(config_path: pathlib.Path, day: dt.date, verbose: bool = False) -> tuple
 
     report.lines.append("")
     if report.blocked:
-        report.lines.append("→ 위 ✗ 항목을 먼저 해결해야 합니다.")
+        report.lines.append(f"→ 위 {FAIL} 항목을 먼저 해결해야 합니다.")
     elif report.failed:
-        report.lines.append("→ ✗ 가 있지만 진행은 가능합니다. `demo` 로 흐름을 먼저 확인해 보세요.")
+        report.lines.append(
+            f"→ {FAIL} 가 있지만 진행은 가능합니다. `demo` 로 흐름을 먼저 확인해 보세요."
+        )
     else:
         report.lines.append("→ 준비됐습니다. `python run.py collect` 을 실행하세요.")
 

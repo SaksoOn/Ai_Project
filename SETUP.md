@@ -1,5 +1,29 @@
 # 개발 환경
 
+## 개인 도구 시트 (Python)
+
+```bash
+pip install openpyxl PyYAML formulas
+python3 -m engine.products.build     # dist/ 에 두 시트 생성
+python3 -m engine.products.verify    # 수식을 실제 계산시켜 검증
+```
+
+`formulas`는 `verify`에서만 쓴다. 빌드된 xlsx의 수식을 실제로 계산해 기대값과
+대조하는 용도라 무겁다 — 빌드만 할 거면 없어도 된다. 다만 **없으면 verify가
+`ModuleNotFoundError`로 죽으므로**, 검증까지 할 거면 처음부터 같이 깐다.
+
+## 일일 업무기록 (Python, Windows 전용)
+
+```bash
+pip install openpyxl pywin32
+cd tools/daily-log
+cp config.example.toml config.toml   # 본인 메일 주소를 채운다
+python run.py doctor                 # 뭐가 왜 안 되는지 한 화면에
+```
+
+`config.toml`의 주소를 예시값 그대로 두면 `doctor`가 잡아낸다. 안 고치면
+받은 메일이 한 건도 안 걸리는데 겉으로는 정상처럼 보이기 때문이다.
+
 ## 니치 하네스 (Python)
 
 ```bash

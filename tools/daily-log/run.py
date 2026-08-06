@@ -22,6 +22,7 @@ import sys
 
 from daily_log import config as config_module
 from daily_log import queue_sheet, weekly
+from daily_log.console import FAIL, PASS, configure
 from daily_log.models import CALENDAR, MAIL_RECEIVED, MAIL_SENT, RawItem
 from daily_log.rules import build_queue
 from daily_log.store import Store
@@ -52,7 +53,7 @@ def cmd_collect(cfg, day: dt.date, fake: list[RawItem] | None = None) -> int:
                 include_calendar=cfg.inclusion.include_calendar,
             )
         except OutlookUnavailable as exc:
-            print(f"✗ {exc}", file=sys.stderr)
+            print(f"{FAIL} {exc}", file=sys.stderr)
             return 1
 
     queue, excluded = build_queue(items, cfg.inclusion, store.load_stats(), cfg.exclusion)
@@ -61,7 +62,7 @@ def cmd_collect(cfg, day: dt.date, fake: list[RawItem] | None = None) -> int:
     queue_sheet.write_queue(path, day, queue, excluded)
     store.save_snapshot(day, queue + excluded)
 
-    print(f"✓ 대기열 {len(queue)}건 생성 → {path}")
+    print(f"{PASS} 대기열 {len(queue)}건 생성 → {path}")
     if excluded:
         print(f"  (늘 지우시던 {len(excluded)}건은 '자동 제외됨' 시트로 뺐습니다)")
     print("\n엑셀을 열어 업무가 아닌 행을 지우고 저장한 뒤, `python run.py confirm` 을 실행하세요.")
@@ -72,13 +73,13 @@ def cmd_confirm(cfg, day: dt.date) -> int:
     store = Store(cfg.data_dir)
     path = _queue_path(cfg, day)
     if not path.exists():
-        print(f"✗ 대기열 파일이 없습니다: {path}\n먼저 `python run.py collect` 을 실행하세요.",
+        print(f"{FAIL} 대기열 파일이 없습니다: {path}\n먼저 `python run.py collect` 을 실행하세요.",
               file=sys.stderr)
         return 1
 
     snapshot = store.load_snapshot(day)
     if not snapshot:
-        print(f"✗ {day} 스냅샷이 없습니다. 학습 없이 진행할 수 없습니다.", file=sys.stderr)
+        print(f"{FAIL} {day} 스냅샷이 없습니다. 학습 없이 진행할 수 없습니다.", file=sys.stderr)
         return 1
 
     kept = queue_sheet.read_kept(path)
@@ -100,7 +101,7 @@ def cmd_confirm(cfg, day: dt.date) -> int:
     store.save_stats(stats)
 
     dropped = len(snapshot) - len(entries)
-    print(f"✓ {day} 업무 {len(entries)}건 확정 (제외 {dropped}건)")
+    print(f"{PASS} {day} 업무 {len(entries)}건 확정 (제외 {dropped}건)")
     if dropped:
         print("  제외 패턴을 학습했습니다. 다음 대기열은 조금 더 깨끗해집니다.")
     return 0
@@ -112,7 +113,7 @@ def cmd_weekly(cfg, day: dt.date, *, no_outlook: bool = False) -> int:
     records = store.load_daily(start, end)
 
     if not records:
-        print(f"✗ {start} ~ {end} 기록이 없습니다. confirm 을 먼저 실행하세요.", file=sys.stderr)
+        print(f"{FAIL} {start} ~ {end} 기록이 없습니다. confirm 을 먼저 실행하세요.", file=sys.stderr)
         return 1
 
     html_body = weekly.build_html(records, start, end)
@@ -121,7 +122,7 @@ def cmd_weekly(cfg, day: dt.date, *, no_outlook: bool = False) -> int:
     out = cfg.queue_dir / f"주간보고_{start.isoformat()}.html"
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(html_body, encoding="utf-8")
-    print(f"✓ 주간보고 {len(records)}건 → {out}")
+    print(f"{PASS} 주간보고 {len(records)}건 → {out}")
 
     if no_outlook:
         return 0
@@ -129,7 +130,7 @@ def cmd_weekly(cfg, day: dt.date, *, no_outlook: bool = False) -> int:
         from daily_log.outlook import OutlookUnavailable, create_draft
 
         create_draft(subject, html_body, cfg.report_to)
-        print("✓ Outlook 초안을 띄웠습니다. 확인 후 보내세요.")
+        print(f"{PASS} Outlook 초안을 띄웠습니다. 확인 후 보내세요.")
     except Exception as exc:  # noqa: BLE001
         print(f"  (Outlook 초안 생성은 건너뜁니다: {exc})")
         print(f"  위 HTML 파일을 열어 복사해 붙여넣으셔도 됩니다.")
@@ -193,7 +194,7 @@ def main(argv: list[str]) -> int:
     try:
         cfg = config_module.load(args.config)
     except (FileNotFoundError, ValueError) as exc:
-        print(f"✗ {exc}", file=sys.stderr)
+        print(f"{FAIL} {exc}", file=sys.stderr)
         return 1
 
     if args.command == "collect":
@@ -206,4 +207,5 @@ def main(argv: list[str]) -> int:
 
 
 if __name__ == "__main__":
+    configure()
     raise SystemExit(main(sys.argv[1:]))

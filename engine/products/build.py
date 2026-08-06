@@ -11,6 +11,8 @@ import pathlib
 import sys
 import traceback
 
+from engine.products.console import FAIL, PASS, configure
+
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 DIST = ROOT / "dist"
 
@@ -48,7 +50,7 @@ def main(argv: list[str]) -> int:
     failed = []
     for sheet_id in targets:
         ok, detail = build_one(sheet_id)
-        print(f"{'✓' if ok else '✗'} {sheet_id}\n    {detail}")
+        print(f"{PASS if ok else FAIL} {sheet_id}\n    {detail}")
         if not ok:
             failed.append(sheet_id)
 
@@ -59,4 +61,5 @@ def main(argv: list[str]) -> int:
 
 
 if __name__ == "__main__":
+    configure()
     raise SystemExit(main(sys.argv[1:]))

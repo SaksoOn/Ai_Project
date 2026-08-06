@@ -20,6 +20,8 @@ import tempfile
 
 from openpyxl import load_workbook
 
+from engine.products.console import FAIL, PASS, configure
+
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 DIST = ROOT / "dist"
 TOLERANCE = 0.5  # 원 단위 반올림 오차만 허용. 1.0이면 건수 오류(0 vs 1)를 놓친다
@@ -79,7 +81,7 @@ class Checker:
 
     def __call__(self, label: str, actual, expected) -> None:
         if actual is None:
-            print(f"    ✗ {label}: 셀이 계산되지 않음")
+            print(f"    {FAIL} {label}: 셀이 계산되지 않음")
             self.failures.append(f"{label}: 계산되지 않음")
             return
         if isinstance(expected, str):
@@ -90,7 +92,7 @@ class Checker:
                 ok = abs(float(actual) - float(expected)) <= TOLERANCE
             except (TypeError, ValueError):
                 shown, ok = actual, False
-        print(f"    {'✓' if ok else '✗'} {label}: {shown} (기대 {expected})")
+        print(f"    {PASS if ok else FAIL} {label}: {shown} (기대 {expected})")
         if not ok:
             self.failures.append(f"{label}: {actual!r} ≠ {expected!r}")
 
@@ -182,7 +184,7 @@ def verify_trade_review(workdir: pathlib.Path) -> list[str]:
     check("손실 평균 보유일(C11)", d["C11"], hold2)
     verdict = d["A12"]
     ok = isinstance(verdict, str) and "⚠" in verdict
-    print(f"    {'✓' if ok else '✗'} 경고 문구: {str(verdict)[:60]}")
+    print(f"    {PASS if ok else FAIL} 경고 문구: {str(verdict)[:60]}")
     if not ok:
         check.failures.append("처분효과 경고가 떠야 하는데 안 떴다")
 
@@ -201,14 +203,14 @@ def verify_trade_review(workdir: pathlib.Path) -> list[str]:
     for cell in ("G8", "K8", "N8", "R8"):
         value = t[cell]
         ok = value in (0, None, "") or (isinstance(value, (int, float)) and float(value) == 0)
-        print(f"    {'✓' if ok else '✗'} 빈 행 {cell}: {value!r}")
+        print(f"    {PASS if ok else FAIL} 빈 행 {cell}: {value!r}")
         if not ok:
             check.failures.append(f"빈 행 {cell}에 오류값: {value!r}")
 
     errors = scan_errors(solution, ("매매기록", "관심종목"))
     check.failures.extend(f"오류 셀: {e}" for e in errors)
     for e in errors:
-        print(f"    ✗ {e}")
+        print(f"    {FAIL} {e}")
 
     return check.failures
 
@@ -286,14 +288,14 @@ def verify_work_inventory(workdir: pathlib.Path) -> list[str]:
     for cell in ("H8", "I8", "N8", "O8"):
         value = w[cell]
         ok = value in (0, None, "") or (isinstance(value, (int, float)) and float(value) == 0)
-        print(f"    {'✓' if ok else '✗'} 빈 행 {cell}: {value!r}")
+        print(f"    {PASS if ok else FAIL} 빈 행 {cell}: {value!r}")
         if not ok:
             check.failures.append(f"빈 행 {cell}에 오류값: {value!r}")
 
     errors = scan_errors(solution, ("업무목록",))
     check.failures.extend(f"오류 셀: {e}" for e in errors)
     for e in errors:
-        print(f"    ✗ {e}")
+        print(f"    {FAIL} {e}")
 
     return check.failures
 
@@ -338,4 +340,5 @@ def main(argv: list[str]) -> int:
 
 
 if __name__ == "__main__":
+    configure()
     raise SystemExit(main(sys.argv[1:]))
