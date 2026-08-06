@@ -225,12 +225,14 @@ def verify_work_inventory(workdir: pathlib.Path) -> list[str]:
 
     # 업무 1 — 주 1회 90분, 완전 자동화, 난이도 2 (예시 행을 덮어쓴다)
     tasks["A6"], tasks["B6"], tasks["C6"] = "주간 보고서", "데이터 집계·보고", "주 1회"
-    tasks["D6"], tasks["J6"], tasks["K6"] = 90, 2, "완전 자동화"
-    tasks["E6"] = tasks["F6"] = tasks["N6"] = None
+    tasks["D6"] = 90
+    tasks["E6"] = tasks["F6"] = tasks["G6"] = tasks["P6"] = None
+    tasks["K6"], tasks["L6"] = "완전 자동화", 2   # ← 파란 칸: 내가 채우는 자리
 
     # 업무 2 — 매일 15분, 반자동화, 난이도 3
     tasks["A7"], tasks["B7"], tasks["C7"] = "메일 분류", "커뮤니케이션", "매일"
-    tasks["D7"], tasks["J7"], tasks["K7"] = 15, 3, "반자동화"
+    tasks["D7"] = 15
+    tasks["K7"], tasks["L7"] = "반자동화", 3
     wb.save(staged)
 
     print("  수식 계산 중…")
@@ -255,17 +257,17 @@ def verify_work_inventory(workdir: pathlib.Path) -> list[str]:
 
     check = Checker()
     print("  업무 1 — 주 1회 90분, 완전 자동화")
-    check("연간 횟수(G6)", w["G6"], freq1)
-    check("연간 소요시간(H6)", w["H6"], hours1)
-    check("연간 비용(I6)", w["I6"], cost1)
-    check("절감 가능(L6)", w["L6"], save1)
-    check("우선순위(M6)", w["M6"], score1)
+    check("연간 횟수(H6)", w["H6"], freq1)
+    check("연간 소요시간(I6)", w["I6"], hours1)
+    check("연간 비용(J6)", w["J6"], cost1)
+    check("절감 가능(N6)", w["N6"], save1)
+    check("우선순위(O6)", w["O6"], score1)
 
     print("  업무 2 — 매일 15분, 반자동화(계수 0.5)")
-    check("연간 횟수(G7)", w["G7"], freq2)
-    check("연간 소요시간(H7)", w["H7"], hours2)
-    check("절감 가능(L7)", w["L7"], save2)
-    check("우선순위(M7)", w["M7"], score2)
+    check("연간 횟수(H7)", w["H7"], freq2)
+    check("연간 소요시간(I7)", w["I7"], hours2)
+    check("절감 가능(N7)", w["N7"], save2)
+    check("우선순위(O7)", w["O7"], score2)
 
     print("  우선순위 — KPI")
     check("연간 총 소요(B5)", p["B5"], round(hours1 + hours2))
@@ -281,7 +283,7 @@ def verify_work_inventory(workdir: pathlib.Path) -> list[str]:
     check("2위 점수(F11)", p["F11"], score2)
 
     print("  빈 행 안전성")
-    for cell in ("G8", "H8", "L8", "M8"):
+    for cell in ("H8", "I8", "N8", "O8"):
         value = w[cell]
         ok = value in (0, None, "") or (isinstance(value, (int, float)) and float(value) == 0)
         print(f"    {'✓' if ok else '✗'} 빈 행 {cell}: {value!r}")

@@ -5,6 +5,15 @@
 
 정리가 안 된 상태에서 바로 자동화에 들어가면 가장 눈에 띄는 것부터 손대게 되고,
 그건 대개 가장 값어치 없는 것이다. 목록을 만들면 어디에 시간이 새는지가 계산으로 나온다.
+
+### 칸을 세 종류로 나눈 이유
+
+"이 업무를 자동화하는 난이도가 1~5 중 몇인가"는 사용자가 판단할 수 없는 질문이다.
+그걸 억지로 물어보면 감으로 찍은 숫자가 우선순위를 결정하게 된다. 그래서 나눴다.
+
+- **노란색** — 사용자만 알 수 있는 것 (무슨 일을, 얼마나 자주, 몇 분씩, 어떤 절차로)
+- **파란색** — 내가 채우는 것 (자동화 가능성·난이도·방법)
+- **나머지** — 자동 계산
 """
 
 from __future__ import annotations
@@ -13,7 +22,7 @@ from openpyxl import Workbook
 from openpyxl.chart import Reference
 
 from ..lib import (
-    DATE, MONEY, MUTED, PERCENT, POSITIVE, QTY,
+    MONEY, MUTED, PERCENT, QTY,
     add_sheet, autofill_rows, bar_chart, body_cell, color_scale, dropdown,
     guide_sheet, header_row, input_legend, kpi_card, new_workbook, note,
     section_title, set_widths, title_block,
@@ -29,14 +38,16 @@ FREQ_TABLE = f"'설정'!$A${FREQ_FIRST}:$B${FREQ_LAST}"
 W = "'업무목록'"
 W_NAME = f"{W}!$A${FIRST}:$A${LAST}"
 W_CATEGORY = f"{W}!$B${FIRST}:$B${LAST}"
-W_HOURS = f"{W}!$H${FIRST}:$H${LAST}"
-W_COST = f"{W}!$I${FIRST}:$I${LAST}"
-W_SAVABLE = f"{W}!$L${FIRST}:$L${LAST}"
-W_SCORE = f"{W}!$M${FIRST}:$M${LAST}"
+W_HOURS = f"{W}!$I${FIRST}:$I${LAST}"
+W_COST = f"{W}!$J${FIRST}:$J${LAST}"
+W_FEASIBLE = f"{W}!$K${FIRST}:$K${LAST}"
+W_DIFFICULTY = f"{W}!$L${FIRST}:$L${LAST}"
+W_SAVABLE = f"{W}!$N${FIRST}:$N${LAST}"
+W_SCORE = f"{W}!$O${FIRST}:$O${LAST}"
 
 CATEGORIES = ["문서·승인", "시스템 운영", "데이터 집계·보고", "커뮤니케이션", "기타"]
 FREQUENCIES = ["매일", "주 2~3회", "주 1회", "격주", "월 1회", "분기 1회"]
-AUTOMATABLE = ["완전 자동화", "반자동화", "불가"]
+FEASIBILITY = ["완전 자동화", "반자동화", "불가"]
 
 
 def _settings(wb: Workbook) -> None:
@@ -85,26 +96,28 @@ def _settings(wb: Workbook) -> None:
 def _tasks(wb: Workbook) -> None:
     ws = add_sheet(wb, "업무목록")
     set_widths(ws, {
-        "A": 34, "B": 16, "C": 12, "D": 12, "E": 20, "F": 22, "G": 11,
-        "H": 13, "I": 14, "J": 11, "K": 13, "L": 14, "M": 12, "N": 28,
+        "A": 32, "B": 15, "C": 11, "D": 11, "E": 18, "F": 20, "G": 46,
+        "H": 10, "I": 12, "J": 14, "K": 13, "L": 10, "M": 46, "N": 12, "O": 11, "P": 24,
     })
 
     row = title_block(
         ws, 1, "업무 목록",
         "한 주 동안 실제로 한 반복 작업을 그때그때 한 줄씩 추가하세요. "
         "한 번에 다 채우려 하지 마세요 — 떠오르는 대로 적는 게 정확도보다 중요합니다.",
-        span=14,
+        span=16,
     )
-    row = input_legend(ws, row, span=14)
+    row = input_legend(ws, row, span=16, with_review=True)
     header_row(ws, row, [
         "업무명", "분류", "주기", "1회 소요\n(분)", "사용 시스템", "산출물",
-        "연간 횟수", "연간 소요\n(시간)", "연간 비용", "자동화\n난이도",
-        "자동화\n가능성", "절감 가능\n(시간)", "우선순위", "메모",
+        "작업 절차 (간단히)",
+        "연간\n횟수", "연간 소요\n(시간)", "연간 비용",
+        "자동화\n가능성", "자동화\n난이도", "자동화 방법",
+        "절감 가능\n(시간)", "우선순위", "메모",
     ])
     assert row + 1 == FIRST
 
     # 자동화 가능성 → 절감 계수. 반자동은 절반만 줄어든다고 본다.
-    savable = '=IF($K{row}="완전 자동화",1,IF($K{row}="반자동화",0.5,0))*$H{row}'
+    savable = '=IF($K{row}="완전 자동화",1,IF($K{row}="반자동화",0.5,0))*$I{row}'
 
     autofill_rows(ws, FIRST, LAST, {
         1: {"is_input": True, "align": "left"},
@@ -113,38 +126,44 @@ def _tasks(wb: Workbook) -> None:
         4: {"is_input": True, "fmt": QTY},
         5: {"is_input": True, "align": "left"},
         6: {"is_input": True, "align": "left"},
-        7: {"formula": f'=IFERROR(VLOOKUP($C{{row}},{FREQ_TABLE},2,FALSE),0)', "fmt": QTY},
-        8: {"formula": "=ROUND(N($D{row})*$G{row}/60,1)", "fmt": "#,##0.0"},
-        9: {"formula": f"=ROUND($H{{row}}*{RATE},0)", "fmt": MONEY},
-        10: {"is_input": True, "fmt": QTY, "align": "center"},
-        11: {"is_input": True, "align": "center"},
-        12: {"formula": savable, "fmt": "#,##0.0"},
-        # 우선순위 = 절감 가능시간 ÷ 난이도. 적은 노력으로 많이 줄이는 것이 위로 온다.
-        13: {"formula": "=IFERROR(ROUND($L{row}/MAX(1,N($J{row})),1),0)", "fmt": "#,##0.0"},
-        14: {"is_input": True, "align": "left"},
+        7: {"is_input": True, "align": "left"},
+        8: {"formula": f"=IFERROR(VLOOKUP($C{{row}},{FREQ_TABLE},2,FALSE),0)", "fmt": QTY},
+        9: {"formula": "=ROUND(N($D{row})*$H{row}/60,1)", "fmt": "#,##0.0"},
+        10: {"formula": f"=ROUND($I{{row}}*{RATE},0)", "fmt": MONEY},
+        # ── 아래 셋은 내가 채운다 ──
+        11: {"is_review": True, "align": "center"},
+        12: {"is_review": True, "fmt": QTY, "align": "center"},
+        13: {"is_review": True, "align": "left"},
+        # ── 다시 자동 계산 ──
+        14: {"formula": savable, "fmt": "#,##0.0"},
+        15: {"formula": "=IFERROR(ROUND($N{row}/MAX(1,$L{row}),1),0)", "fmt": "#,##0.0"},
+        16: {"is_input": True, "align": "left"},
     })
 
     dropdown(ws, f"B{FIRST}:B{LAST}", CATEGORIES)
     dropdown(ws, f"C{FIRST}:C{LAST}", FREQUENCIES)
-    dropdown(ws, f"J{FIRST}:J{LAST}", ["1", "2", "3", "4", "5"])
-    dropdown(ws, f"K{FIRST}:K{LAST}", AUTOMATABLE)
-    color_scale(ws, f"H{FIRST}:H{LAST}")
-    color_scale(ws, f"M{FIRST}:M{LAST}")
+    dropdown(ws, f"K{FIRST}:K{LAST}", FEASIBILITY)
+    dropdown(ws, f"L{FIRST}:L{LAST}", ["1", "2", "3", "4", "5"])
+    color_scale(ws, f"I{FIRST}:I{LAST}")
+    color_scale(ws, f"O{FIRST}:O{LAST}")
     ws.freeze_panes = f"B{FIRST}"
 
     ws.cell(row=FIRST, column=1, value="(예시) 주간 매출 집계 후 보고서 메일 발송")
     ws.cell(row=FIRST, column=2, value="데이터 집계·보고")
     ws.cell(row=FIRST, column=3, value="주 1회")
     ws.cell(row=FIRST, column=4, value=90)
-    ws.cell(row=FIRST, column=10, value=2)
-    ws.cell(row=FIRST, column=11, value="완전 자동화")
-    ws.cell(row=FIRST, column=14, value="예시 행입니다. 지우고 쓰세요")
+    ws.cell(row=FIRST, column=5, value="사내 ERP, 엑셀, 아웃룩")
+    ws.cell(row=FIRST, column=6, value="주간 보고서 (엑셀 첨부 메일)")
+    ws.cell(row=FIRST, column=7,
+            value="ERP에서 기간 조회 → 엑셀 다운로드 → 피벗으로 집계 → 서식 맞춰 정리 → 메일 발송")
+    ws.cell(row=FIRST, column=16, value="예시 행입니다. 지우고 쓰세요")
 
     note(ws, LAST + 2,
-         "※ 자동화 난이도는 1(아주 쉬움) ~ 5(아주 어려움) 감으로 매기면 됩니다. "
-         "정확할 필요 없습니다 — 순위를 가르는 용도입니다.\n"
-         "※ 우선순위 = 절감 가능시간 ÷ 난이도. 적은 노력으로 많이 줄이는 것이 위로 옵니다.",
-         span=14)
+         "※ 파란색 칸(자동화 가능성·난이도·방법)은 비워두세요. 제가 채워드립니다.\n"
+         "※ 대신 '작업 절차'를 한 줄로 적어주세요. 그게 난이도를 판단하는 근거가 됩니다.\n"
+         "   예: 'A시스템에서 조회 → 엑셀 받아서 정리 → 메일 발송' 정도면 충분합니다.\n"
+         "※ 1회 소요시간은 감으로 적어도 됩니다. 순위를 가르는 용도입니다.",
+         span=16)
 
 
 def _priority(wb: Workbook) -> None:
@@ -160,9 +179,9 @@ def _priority(wb: Workbook) -> None:
 
     for idx, (label, formula, fmt) in enumerate([
         ("등록 업무 수", f"={filled}", QTY),
-        ("연간 총 소요", f"=ROUND(SUM({W_HOURS}),0)", "#,##0\"시간\""),
+        ("연간 총 소요", f"=ROUND(SUM({W_HOURS}),0)", '#,##0"시간"'),
         ("연간 총 비용", f"=SUM({W_COST})", MONEY),
-        ("절감 가능 시간", f"=ROUND(SUM({W_SAVABLE}),0)", "#,##0\"시간\""),
+        ("절감 가능 시간", f"=ROUND(SUM({W_SAVABLE}),0)", '#,##0"시간"'),
         ("절감 가능 금액", f"=ROUND(SUM({W_SAVABLE})*{RATE},0)", MONEY),
         ("절감 비율", f"=IFERROR(SUM({W_SAVABLE})/SUM({W_HOURS}),0)", PERCENT),
     ]):
@@ -171,9 +190,7 @@ def _priority(wb: Workbook) -> None:
 
     # ── 자동화 우선순위 상위 15 ─────────────────────────
     row = section_title(ws, row, "① 여기부터 자동화하세요 — 우선순위 상위 15")
-    header_row(ws, row, [
-        "업무명", "분류", "연간 소요", "절감 가능", "난이도", "우선순위",
-    ])
+    header_row(ws, row, ["업무명", "분류", "연간 소요", "절감 가능", "난이도", "우선순위"])
     row += 1
     top_start = row
     for offset in range(15):
@@ -185,8 +202,7 @@ def _priority(wb: Workbook) -> None:
         body_cell(ws, r, 2, "=" + guard.format(expr=f"INDEX({W_CATEGORY},{idx})"), align="center")
         body_cell(ws, r, 3, "=" + guard.format(expr=f"INDEX({W_HOURS},{idx})"), fmt="#,##0.0")
         body_cell(ws, r, 4, "=" + guard.format(expr=f"INDEX({W_SAVABLE},{idx})"), fmt="#,##0.0")
-        body_cell(ws, r, 5, "=" + guard.format(
-            expr=f"INDEX({W}!$J${FIRST}:$J${LAST},{idx})"), fmt=QTY)
+        body_cell(ws, r, 5, "=" + guard.format(expr=f"INDEX({W_DIFFICULTY},{idx})"), fmt=QTY)
         body_cell(ws, r, 6, "=" + guard.format(expr=rank), fmt="#,##0.0", bold=True)
     top_end = top_start + 14
     color_scale(ws, f"F{top_start}:F{top_end}")
@@ -200,7 +216,6 @@ def _priority(wb: Workbook) -> None:
     # ── 분류별 ──────────────────────────────────────────
     row = section_title(ws, row, "② 분류별 — 어디에 시간이 몰려 있는가")
     header_row(ws, row, ["분류", "업무 수", "연간 소요", "연간 비용", "절감 가능", "비중"])
-    cat_head = row
     row += 1
     cat_start = row
     for offset, category in enumerate(CATEGORIES):
@@ -219,20 +234,18 @@ def _priority(wb: Workbook) -> None:
     row = section_title(ws, row, "③ 자동화 가능성별 — 손댈 수 있는 게 얼마나 되는가")
     header_row(ws, row, ["가능성", "업무 수", "연간 소요", "절감 가능", "", ""])
     row += 1
-    auto_start = row
-    for offset, label in enumerate(AUTOMATABLE):
-        r = auto_start + offset
-        target = f"{W}!$K${FIRST}:$K${LAST}"
+    for offset, label in enumerate(FEASIBILITY):
+        r = row + offset
         body_cell(ws, r, 1, label, align="left")
-        body_cell(ws, r, 2, f"=COUNTIF({target},$A{r})", fmt=QTY)
-        body_cell(ws, r, 3, f"=ROUND(SUMIF({target},$A{r},{W_HOURS}),1)", fmt="#,##0.0")
-        body_cell(ws, r, 4, f"=ROUND(SUMIF({target},$A{r},{W_SAVABLE}),1)", fmt="#,##0.0")
-        row += 1
+        body_cell(ws, r, 2, f"=COUNTIF({W_FEASIBLE},$A{r})", fmt=QTY)
+        body_cell(ws, r, 3, f"=ROUND(SUMIF({W_FEASIBLE},$A{r},{W_HOURS}),1)", fmt="#,##0.0")
+        body_cell(ws, r, 4, f"=ROUND(SUMIF({W_FEASIBLE},$A{r},{W_SAVABLE}),1)", fmt="#,##0.0")
+    row += len(FEASIBILITY)
 
     note(ws, row + 1,
-         "※ 상위 1~2개만 먼저 자동화하세요. 한꺼번에 다 하려 들면 아무것도 안 끝납니다.\n"
-         "※ '불가'로 분류한 업무가 많다면, 정말 불가인지 다시 보세요. "
-         "대개는 '방법을 모르는 것'이지 '불가능한 것'이 아닙니다.", span=9)
+         "※ 이 표는 제가 [업무목록]의 파란색 칸을 채운 뒤에 값이 들어옵니다.\n"
+         "※ 상위 1~2개만 먼저 자동화하세요. 한꺼번에 다 하려 들면 아무것도 안 끝납니다.",
+         span=9)
 
 
 def build() -> Workbook:
@@ -245,26 +258,32 @@ def build() -> Workbook:
             "내가 무슨 일에 시간을 쓰고 있는지를 눈에 보이게 만듭니다.",
             "그리고 어떤 것부터 자동화해야 효과가 큰지 계산해서 순위로 보여줍니다.",
         ]),
+        ("★ 칸이 세 종류입니다", [
+            "노란색 — 직접 입력하세요. 사용자님만 알 수 있는 것들입니다.",
+            "파란색 — 비워두세요. 제가 채워드립니다 (자동화 가능성·난이도·방법).",
+            "나머지 — 자동 계산됩니다. 손대지 마세요.",
+            "",
+            "'이 업무를 자동화하는 난이도가 1~5 중 몇인가'는 판단하기 어려운 질문입니다.",
+            "감으로 찍은 숫자가 우선순위를 결정하면 안 되므로 제가 채우는 쪽으로 나눴습니다.",
+        ]),
         ("왜 자동화보다 목록이 먼저인가", [
             "정리가 안 된 상태에서 바로 자동화에 들어가면 가장 눈에 띄는 것부터 손대게 됩니다.",
             "그런데 눈에 띄는 것과 시간을 많이 먹는 것은 대개 다릅니다.",
             "목록을 만들면 어디에 시간이 새는지가 계산으로 나옵니다.",
         ]),
-        ("처음 한 번만", [
-            "[설정]에서 시간당 가치와 연간 근무주수를 확인합니다.",
-            "시간당 가치는 절감 효과를 돈으로 환산해 보기 위한 기준일 뿐입니다. 대충 넣어도 됩니다.",
-        ]),
-        ("한 주 동안", [
+        ("한 주 동안 하실 일", [
             "반복 작업을 할 때마다 [업무목록]에 한 줄씩 추가합니다.",
             "★ 한 번에 다 채우려 하지 마세요. 떠오르는 대로 적는 게 정확도보다 중요합니다.",
             "1회 소요시간은 감으로 적어도 됩니다. 순위를 가르는 용도입니다.",
-            "자동화 난이도는 1(아주 쉬움) ~ 5(아주 어려움)로 매깁니다.",
+            "",
+            "★ '작업 절차'를 한 줄로 꼭 적어주세요.",
+            "   예: 'ERP에서 조회 → 엑셀 받아서 피벗 → 서식 맞춰 정리 → 메일 발송'",
+            "   이게 제가 자동화 난이도와 방법을 판단하는 근거가 됩니다.",
         ]),
         ("한 주 뒤", [
-            "[우선순위] 시트를 봅니다.",
-            "① 상위 1~2개만 먼저 자동화하세요. 한꺼번에 다 하려 들면 아무것도 안 끝납니다.",
-            "② 분류별로 보면 어느 영역에 시간이 몰려 있는지 보입니다.",
-            "③ '불가'가 많다면 정말 불가인지 다시 보세요. 대개는 '방법을 모르는 것'입니다.",
+            "채운 파일을 저에게 주시면 파란색 칸(가능성·난이도·방법)을 채워 돌려드립니다.",
+            "그러면 [우선순위] 시트에 순위가 나옵니다.",
+            "상위 1~2개만 먼저 자동화하세요. 한꺼번에 다 하려 들면 아무것도 안 끝납니다.",
         ]),
         ("계산 방식 (검증용)", [
             "연간 횟수 = 주기에 따라 [설정]의 표에서 자동 조회",
@@ -276,7 +295,7 @@ def build() -> Workbook:
         ]),
         ("⚠ 주의", [
             "회사 데이터·접속정보·사내 시스템 경로는 이 파일에 적지 마세요.",
-            "업무명과 시스템 이름 정도면 충분합니다.",
+            "업무명, 시스템 이름, 대략적인 절차 정도면 충분합니다.",
         ]),
     ])
     return wb

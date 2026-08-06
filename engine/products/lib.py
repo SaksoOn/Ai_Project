@@ -27,7 +27,8 @@ LINE = "D2D6DC"
 POSITIVE = "047857"
 NEGATIVE = "B91C1C"
 WARN_FILL = "FEF3C7"
-INPUT_FILL = "FFFBEB"
+INPUT_FILL = "FFFBEB"   # 노랑 — 사용자가 채우는 칸
+REVIEW_FILL = "EFF6FF"  # 파랑 — 내가 채워주는 칸 (사용자가 판단할 수 없는 것)
 
 MONEY = '#,##0"원"'
 MONEY_PLAIN = "#,##0"
@@ -100,6 +101,7 @@ def body_cell(
     *,
     fmt: str | None = None,
     is_input: bool = False,
+    is_review: bool = False,
     bold: bool = False,
     align: str = "right",
     color: str = INK,
@@ -112,6 +114,8 @@ def body_cell(
         cell.number_format = fmt
     if is_input:
         cell.fill = PatternFill("solid", fgColor=INPUT_FILL)
+    elif is_review:
+        cell.fill = PatternFill("solid", fgColor=REVIEW_FILL)
     return cell
 
 
@@ -238,9 +242,19 @@ def guide_sheet(wb: Workbook, product_name: str, sections: list[tuple[str, list[
     return ws
 
 
-def input_legend(ws: Worksheet, row: int, span: int = 8) -> int:
-    """노란 칸 = 직접 입력. 이걸 안 적으면 문의가 온다."""
-    cell = ws.cell(row=row, column=1, value="  노란색 칸만 입력하세요. 나머지는 자동 계산됩니다.")
+def input_legend(ws: Worksheet, row: int, span: int = 8, *, with_review: bool = False) -> int:
+    """색 범례. 어느 칸을 채워야 하는지 안 적으면 반드시 헷갈린다.
+
+    `with_review=True`면 "내가 채워주는 칸"까지 3색으로 설명한다. 사용자가 판단할 수
+    없는 항목(예: 자동화 난이도)을 억지로 물어보지 않기 위한 구분이다.
+    """
+    text = (
+        "  노란색 = 직접 입력하세요   ·   파란색 = 제가 채워드립니다 (판단이 필요한 칸)"
+        "   ·   나머지 = 자동 계산"
+        if with_review
+        else "  노란색 칸만 입력하세요. 나머지는 자동 계산됩니다."
+    )
+    cell = ws.cell(row=row, column=1, value=text)
     cell.font = Font(name=FONT, size=9, bold=True, color="92400E")
     cell.fill = PatternFill("solid", fgColor=WARN_FILL)
     ws.merge_cells(start_row=row, start_column=1, end_row=row, end_column=span)
@@ -263,6 +277,7 @@ def autofill_rows(ws: Worksheet, first_row: int, last_row: int, col_specs: dict[
                 ws, r, col, value,
                 fmt=spec.get("fmt"),
                 is_input=spec.get("is_input", False),
+                is_review=spec.get("is_review", False),
                 align=spec.get("align", "right"),
             )
 
