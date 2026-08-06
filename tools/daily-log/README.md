@@ -25,6 +25,19 @@ cp config.example.toml config.toml
 `config.toml`에 **본인 메일 주소와 부서 주소만** 채우면 됩니다.
 비밀번호는 필요 없습니다 — 이미 로그인된 Outlook을 그대로 씁니다.
 
+## 막히면 먼저 이걸 돌리세요
+
+```bash
+python run.py doctor          # 환경 진단. 아무것도 쓰지 않습니다
+python run.py doctor --verbose  # 대기열 미리보기까지
+```
+
+Python·패키지·설정·폴더 권한·Outlook 연결을 차례로 확인하고, **뭐가 왜 안 되는지**를
+한 화면에 보여줍니다. 막히면 이 결과를 그대로 복사해 물어보시면 됩니다.
+
+수집은 됐는데 대기열이 0건이면 대개 **config.toml의 메일 주소가 Outlook에 보이는 주소와
+다른 경우**입니다. doctor가 그것도 짚어줍니다.
+
 ## 먼저 흉내내 보기 (Outlook 없이)
 
 ```bash

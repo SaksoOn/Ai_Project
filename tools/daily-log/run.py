@@ -5,6 +5,8 @@
     python run.py confirm     대기열에서 남긴 것을 확정하고, 지운 것을 학습
     python run.py weekly      이번 주 기록으로 보고 메일 초안 생성
     python run.py demo        가짜 데이터로 전체 흐름 시연 (Outlook 불필요)
+    python run.py doctor      환경 진단 — 뭐가 왜 안 되는지 한 화면에
+                              (아무것도 쓰지 않음. 막히면 결과를 그대로 물어보세요)
 
 하루 흐름:
     아침/퇴근 전 → collect → 엑셀에서 업무 아닌 행 삭제 → 저장 → confirm
@@ -168,19 +170,31 @@ def cmd_demo(cfg, day: dt.date) -> int:
 
 def main(argv: list[str]) -> int:
     parser = argparse.ArgumentParser(description="일일 업무기록 · 주간보고 자동화")
-    parser.add_argument("command", choices=["collect", "confirm", "weekly", "demo"])
+    parser.add_argument(
+        "command", choices=["collect", "confirm", "weekly", "demo", "doctor"]
+    )
     parser.add_argument("--config", type=pathlib.Path, default=DEFAULT_CONFIG)
     parser.add_argument("--date", help="YYYY-MM-DD (기본: 오늘)")
     parser.add_argument("--no-outlook", action="store_true", help="Outlook 초안 생성을 건너뜀")
+    parser.add_argument(
+        "--verbose", action="store_true", help="doctor: 대기열 미리보기까지 출력"
+    )
     args = parser.parse_args(argv)
+
+    day = dt.date.fromisoformat(args.date) if args.date else dt.date.today()
+
+    if args.command == "doctor":
+        from daily_log import doctor
+
+        text, ok = doctor.run(args.config, day, verbose=args.verbose)
+        print(text)
+        return 0 if ok else 1
 
     try:
         cfg = config_module.load(args.config)
     except (FileNotFoundError, ValueError) as exc:
         print(f"✗ {exc}", file=sys.stderr)
         return 1
-
-    day = dt.date.fromisoformat(args.date) if args.date else dt.date.today()
 
     if args.command == "collect":
         return cmd_collect(cfg, day)
