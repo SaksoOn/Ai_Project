@@ -64,8 +64,12 @@ def cmd_collect(cfg, day: dt.date, fake: list[RawItem] | None = None) -> int:
 
     print(f"{PASS} 대기열 {len(queue)}건 생성 → {path}")
     if excluded:
-        print(f"  (늘 지우시던 {len(excluded)}건은 '자동 제외됨' 시트로 뺐습니다)")
-    print("\n엑셀을 열어 업무가 아닌 행을 지우고 저장한 뒤, `python run.py confirm` 을 실행하세요.")
+        print(f"  (늘 빼시던 {len(excluded)}건은 '자동 제외됨' 시트로 뺐습니다)")
+    print("\n다음 순서로 하시면 됩니다:")
+    print("  1. 위 엑셀을 엽니다")
+    print("  2. 업무가 아닌 줄은 '구분'을 [아님] 으로 바꿉니다 (행을 지워도 같습니다)")
+    print("     '업무 내용 / 메모' 에 왜 아닌지 적어두면 반복업무를 뽑을 때 근거로 씁니다")
+    print("  3. 저장한 뒤 2_확정.bat (또는 `python run.py confirm`) 을 실행합니다")
     return 0
 
 
