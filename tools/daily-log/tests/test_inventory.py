@@ -199,6 +199,25 @@ class 인벤토리에_쓰기(unittest.TestCase):
         # 사용자가 채운 소요시간이 살아 있어야 한다
         self.assertEqual(self._read(inventory.ROW_FIRST, inventory.COL_MINUTES), 45)
 
+    def test_업무명만_지운_행을_재사용해도_옛_값이_안_남는다(self):
+        # openpyxl 은 cell(value=None) 을 무시한다. 그걸 모르고 쓰면 지운 업무의
+        # 주기·절차가 새 업무에 그대로 붙는다.
+        from openpyxl import load_workbook
+
+        from daily_log import inventory
+
+        wb = load_workbook(self.path)
+        ws = wb[inventory.SHEET]
+        ws.cell(row=inventory.ROW_FIRST, column=inventory.COL_FREQUENCY, value="매일")
+        ws.cell(row=inventory.ROW_FIRST, column=inventory.COL_MINUTES, value=90)
+        ws.cell(row=inventory.ROW_FIRST, column=inventory.COL_PROCEDURE, value="옛 절차")
+        wb.save(self.path)
+
+        self._write(build_candidates([record("새 업무", 6)]))
+        self.assertEqual(self._read(inventory.ROW_FIRST, inventory.COL_NAME), "새 업무")
+        for column in (inventory.COL_FREQUENCY, inventory.COL_MINUTES, inventory.COL_PROCEDURE):
+            self.assertIsNone(self._read(inventory.ROW_FIRST, column))
+
     def test_같은_명령을_두_번_돌려도_행이_안_늘어난다(self):
         candidates = build_candidates([record("승인 요청", 6)])
         self.assertEqual(self._write(candidates)[0], ["승인 요청"])

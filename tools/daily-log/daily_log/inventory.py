@@ -234,13 +234,20 @@ def write_into_inventory(path, candidates: list[Candidate]) -> tuple[list[str], 
         if not free_rows:
             break
         row = free_rows.pop(0)
-        ws.cell(row=row, column=COL_NAME, value=candidate.name)
-        ws.cell(row=row, column=COL_CATEGORY, value=candidate.category)
-        ws.cell(row=row, column=COL_FREQUENCY, value=suggest_frequency(candidate) or None)
-        ws.cell(row=row, column=COL_SYSTEMS, value=candidate.systems or None)
-        ws.cell(row=row, column=COL_PROCEDURE, value=candidate.procedure or None)
-        ws.cell(row=row, column=COL_NOTE, value=evidence_note(candidate))
-        # 1회 소요시간(COL_MINUTES)은 비운다. 여기서 찍으면 우선순위가 감이 된다.
+        # openpyxl 의 cell(value=None) 은 셀을 지우지 않고 그냥 넘어간다.
+        # 빈 값을 넣으려면 .value = None 으로 써야 한다. 안 그러면 업무명만 지워둔
+        # 행을 재사용할 때 예전 주기·절차가 새 업무에 붙는다.
+        for column, value in {
+            COL_NAME: candidate.name,
+            COL_CATEGORY: candidate.category,
+            COL_FREQUENCY: suggest_frequency(candidate) or None,
+            # 1회 소요시간은 비운다. 여기서 찍으면 우선순위가 감이 된다.
+            COL_MINUTES: None,
+            COL_SYSTEMS: candidate.systems or None,
+            COL_PROCEDURE: candidate.procedure or None,
+            COL_NOTE: evidence_note(candidate),
+        }.items():
+            ws.cell(row=row, column=column).value = value
         added.append(candidate.name)
         existing.add(normalize(candidate.name))
 
