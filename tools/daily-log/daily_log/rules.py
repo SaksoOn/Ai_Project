@@ -136,6 +136,7 @@ def build_queue(
     queue: list[QueueItem] = []
     excluded: list[QueueItem] = []
     seen_keys: set[str] = set()
+    seen_identities: set[tuple[str, str, str, str]] = set()
 
     for raw in sorted(items, key=lambda i: i.at):
         reason = include_reason(raw, inclusion)
@@ -144,6 +145,17 @@ def build_queue(
         if raw.key in seen_keys:  # 같은 메일이 여러 폴더에 잡히는 경우
             continue
         seen_keys.add(raw.key)
+
+        # EntryID는 사서함마다 다르게 붙는다. 부서 주소를 두 개 이상 넣으면 같은 메일이
+        # 사서함 수만큼 올라오는데, 위의 키 비교로는 못 거른다. 내용으로 한 번 더 본다.
+        #
+        # 같은 분·같은 발신자·같은 제목이면 한 건으로 본다. 진짜 다른 메일이 이 조건에
+        # 걸릴 수도 있지만(1분 안에 같은 제목으로 두 번 온 자동알림), 업무 기록에서는
+        # 그것도 한 건으로 세는 편이 맞다.
+        identity = (raw.at.isoformat(), raw.kind, _norm(raw.sender), raw.subject.strip())
+        if identity in seen_identities:
+            continue
+        seen_identities.add(identity)
 
         counterpart = raw.sender if raw.kind != MAIL_SENT else ", ".join(raw.to)
         entry = QueueItem(

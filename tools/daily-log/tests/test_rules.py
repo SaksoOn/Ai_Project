@@ -86,6 +86,32 @@ class 대기열_구성(unittest.TestCase):
         queue, _ = build_queue([item, item], CONFIG)
         self.assertEqual(len(queue), 1)
 
+    def test_부서_사서함이_여러_개여도_한_번만_올린다(self):
+        # 부서 주소를 두 개 넣으면 같은 메일이 사서함마다 다른 EntryID로 올라온다.
+        # EntryID 비교만으로는 못 거른다 — 실제로 AWS 알림이 두 줄로 찍혔다.
+        common = dict(
+            at=dt.datetime(2026, 8, 6, 20, 48),
+            kind=MAIL_RECEIVED,
+            subject="RE:[CASE 000000000000000] 승인 요청 건",
+            sender="no-reply@example.com",
+            to=(DEPT,),
+        )
+        items = [
+            RawItem(**common, entry_id="ENTRYID-A"),
+            RawItem(**common, entry_id="ENTRYID-B"),
+        ]
+        queue, _ = build_queue(items, CONFIG)
+        self.assertEqual(len(queue), 1)
+
+    def test_제목이_다르면_같은_분이어도_둘_다_올린다(self):
+        # 위 중복 제거가 과하게 먹으면 진짜 업무가 사라진다. 경계를 박아둔다.
+        items = [
+            mail(to=(ME,), subject="첫 번째"),
+            mail(to=(ME,), subject="두 번째"),
+        ]
+        queue, _ = build_queue(items, CONFIG)
+        self.assertEqual(len(queue), 2)
+
     def test_받은_메일은_발신자를_상대로_잡는다(self):
         queue, _ = build_queue([mail(sender="boss@x.com", to=(ME,))], CONFIG)
         self.assertEqual(queue[0].counterpart, "boss@x.com")

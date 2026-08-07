@@ -57,17 +57,76 @@ class 대기열_엑셀(unittest.TestCase):
     def test_업무내용을_적으면_제목_대신_그게_들어간다(self):
         path = queue_sheet.write_queue(self.dir / "q.xlsx", DAY, [item("k1", "RE: RE: 회신")])
         wb = load_workbook(path)
-        wb["오늘 업무"].cell(row=queue_sheet.FIRST_ROW, column=6, value="정산 자료 회신")
+        wb["오늘 업무"].cell(
+            row=queue_sheet.FIRST_ROW, column=queue_sheet.CONTENT_COLUMN, value="정산 자료 회신"
+        )
         wb.save(path)
         self.assertEqual(queue_sheet.read_kept(path)["k1"], "정산 자료 회신")
 
-    def test_자동제외_시트에서_옮겨온_행도_읽는다(self):
-        # 잘못 제외된 걸 사용자가 되살릴 수 있어야 한다.
+    def test_구분을_아님으로_바꾸면_읽히지_않는다(self):
+        # 행을 지우는 대신 표시만 하는 방식. 왜 아닌지가 메모로 남는다.
+        path = queue_sheet.write_queue(
+            self.dir / "q.xlsx", DAY, [item("k1", "업무"), item("k2", "광고", 10)]
+        )
+        wb = load_workbook(path)
+        ws = wb["오늘 업무"]
+        for row in range(queue_sheet.FIRST_ROW, ws.max_row + 1):
+            if ws.cell(row=row, column=4).value == "광고":
+                ws.cell(row=row, column=queue_sheet.MARK_COLUMN, value="아님")
+                ws.cell(row=row, column=queue_sheet.CONTENT_COLUMN, value="광고성 메일")
+        wb.save(path)
+
+        kept = queue_sheet.read_kept(path)
+        self.assertIn("k1", kept)
+        self.assertNotIn("k2", kept)
+
+    def test_아님_표기가_달라도_받아준다(self):
+        # 사람마다 X, 제외, 아님을 섞어 쓴다. 표기 하나 때문에 업무가 새면 안 된다.
+        for mark in ("아님", "X", "x", "제외"):
+            path = queue_sheet.write_queue(self.dir / f"q{mark}.xlsx", DAY, [item("k1", "광고")])
+            wb = load_workbook(path)
+            wb["오늘 업무"].cell(
+                row=queue_sheet.FIRST_ROW, column=queue_sheet.MARK_COLUMN, value=mark
+            )
+            wb.save(path)
+            self.assertNotIn("k1", queue_sheet.read_kept(path), f"표기 {mark!r} 를 놓쳤다")
+
+    def test_구분이_비어있으면_업무로_본다(self):
+        # 지우는 방식만 쓰던 사람이 구분 칸을 몰라도 그대로 동작해야 한다.
+        path = queue_sheet.write_queue(self.dir / "q.xlsx", DAY, [item("k1", "본문")])
+        self.assertIn("k1", queue_sheet.read_kept(path))
+
+    def test_자동제외_시트에_그대로_두면_계속_빠진다(self):
+        # 예전엔 두 시트를 다 읽어서, 가만히 두면 자동 제외가 하루 만에 풀렸다.
         path = queue_sheet.write_queue(
             self.dir / "q.xlsx", DAY, [item("k1", "본문")], [item("k2", "자동제외됨", 11)]
         )
-        kept = queue_sheet.read_kept(path)
-        self.assertEqual(set(kept), {"k1", "k2"})
+        self.assertEqual(set(queue_sheet.read_kept(path)), {"k1"})
+
+    def test_자동제외_시트에서_옮겨오면_되살아난다(self):
+        # 잘못 제외된 걸 사용자가 되살릴 수 있어야 한다 — 안내문이 시키는 대로 옮겨본다.
+        path = queue_sheet.write_queue(
+            self.dir / "q.xlsx", DAY, [item("k1", "본문")], [item("k2", "자동제외됨", 11)]
+        )
+        wb = load_workbook(path)
+        source, target = wb["자동 제외됨"], wb["오늘 업무"]
+        moved = [c.value for c in source[queue_sheet.FIRST_ROW]]
+        for index, value in enumerate(moved, start=1):
+            target.cell(row=target.max_row + (1 if index == 1 else 0), column=index, value=value)
+        wb.save(path)
+
+        self.assertEqual(set(queue_sheet.read_kept(path)), {"k1", "k2"})
+
+    def test_아님으로_표시한_행의_메모도_남는다(self):
+        # 왜 업무가 아닌지가 반복업무를 추릴 때 근거가 된다. 버리면 안 된다.
+        path = queue_sheet.write_queue(self.dir / "q.xlsx", DAY, [item("k1", "광고")])
+        wb = load_workbook(path)
+        ws = wb["오늘 업무"]
+        ws.cell(row=queue_sheet.FIRST_ROW, column=queue_sheet.MARK_COLUMN, value="아님")
+        ws.cell(row=queue_sheet.FIRST_ROW, column=queue_sheet.CONTENT_COLUMN, value="광고성 메일")
+        wb.save(path)
+
+        self.assertEqual(queue_sheet.read_memos(path)["k1"], (False, "광고성 메일"))
 
     def test_자동제외가_없으면_시트를_만들지_않는다(self):
         path = queue_sheet.write_queue(self.dir / "q.xlsx", DAY, [item("k1", "본문")])

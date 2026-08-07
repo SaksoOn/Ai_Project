@@ -95,6 +95,9 @@ def cmd_confirm(cfg, day: dt.date) -> int:
                 "kind": item.kind,
                 "counterpart": item.counterpart,
                 "content": kept[item.key] or item.subject,
+                # 제목을 따로 남긴다. content 는 메모로 덮이는데, 메모는 그날그날 달라서
+                # 같은 업무를 묶는 기준으로 못 쓴다. 반복업무 추출이 제목에 걸려 있다.
+                "subject": item.subject,
             })
 
     store.append_daily(day, entries)
@@ -137,6 +140,56 @@ def cmd_weekly(cfg, day: dt.date, *, no_outlook: bool = False) -> int:
     return 0
 
 
+DEFAULT_INVENTORY = pathlib.Path(__file__).resolve().parents[2] / "dist" / "반복업무_인벤토리.xlsx"
+
+
+def cmd_inventory(cfg, path: pathlib.Path, *, dry_run: bool = False) -> int:
+    from daily_log import inventory
+
+    store = Store(cfg.data_dir)
+    records = store.load_daily()
+    if not records:
+        print(f"{FAIL} 확정된 기록이 없습니다. `python run.py confirm` 을 먼저 실행하세요.",
+              file=sys.stderr)
+        return 1
+
+    candidates = inventory.build_candidates(records)
+    if not candidates:
+        print(f"{FAIL} 기록에서 뽑을 업무가 없습니다.", file=sys.stderr)
+        return 1
+
+    days = {r.get("date") for r in records if r.get("date")}
+    print(f"기록 {len(records)}건 / {len(days)}일 → 업무 후보 {len(candidates)}건\n")
+    for c in candidates:
+        frequency = inventory.suggest_frequency(c) or "주기 미정"
+        print(f"  {c.count:>2}회  {c.name[:44]:<44}  {c.category} · {frequency}")
+
+    if dry_run:
+        print("\n(--dry-run 이라 파일은 건드리지 않았습니다)")
+        return 0
+
+    if not path.exists():
+        print(f"\n{FAIL} 인벤토리 파일이 없습니다: {path}\n"
+              f"저장소 루트에서 `python -m engine.products.build` 를 먼저 실행하세요.",
+              file=sys.stderr)
+        return 1
+
+    try:
+        added, skipped, free = inventory.write_into_inventory(path, candidates)
+    except (ValueError, OSError) as exc:
+        print(f"\n{FAIL} 인벤토리에 쓰지 못했습니다: {exc}", file=sys.stderr)
+        return 1
+
+    print(f"\n{PASS} {len(added)}건 추가 → {path}")
+    if skipped:
+        print(f"  이미 있어서 건너뜀 {len(skipped)}건 (기존 내용은 그대로 둡니다)")
+    if not free:
+        print("  ! 업무목록이 가득 찼습니다. 다 쓴 행을 정리해주세요.")
+    if added:
+        print("\n1회 소요시간은 비워뒀습니다. 그 칸만 채우시면 우선순위가 계산됩니다.")
+    return 0
+
+
 def _demo_items(day: dt.date, me: str, dept: str) -> list[RawItem]:
     """Outlook 없이 전체 흐름을 확인하기 위한 가짜 하루."""
     def at(hour, minute=0):
@@ -172,13 +225,20 @@ def cmd_demo(cfg, day: dt.date) -> int:
 def main(argv: list[str]) -> int:
     parser = argparse.ArgumentParser(description="일일 업무기록 · 주간보고 자동화")
     parser.add_argument(
-        "command", choices=["collect", "confirm", "weekly", "demo", "doctor"]
+        "command", choices=["collect", "confirm", "weekly", "demo", "doctor", "inventory"]
     )
     parser.add_argument("--config", type=pathlib.Path, default=DEFAULT_CONFIG)
     parser.add_argument("--date", help="YYYY-MM-DD (기본: 오늘)")
     parser.add_argument("--no-outlook", action="store_true", help="Outlook 초안 생성을 건너뜀")
     parser.add_argument(
         "--verbose", action="store_true", help="doctor: 대기열 미리보기까지 출력"
+    )
+    parser.add_argument(
+        "--inventory", type=pathlib.Path, default=DEFAULT_INVENTORY,
+        help="inventory: 반복업무 인벤토리 엑셀 경로",
+    )
+    parser.add_argument(
+        "--dry-run", action="store_true", help="inventory: 뽑기만 하고 파일은 안 건드림"
     )
     args = parser.parse_args(argv)
 
@@ -203,6 +263,8 @@ def main(argv: list[str]) -> int:
         return cmd_confirm(cfg, day)
     if args.command == "weekly":
         return cmd_weekly(cfg, day, no_outlook=args.no_outlook)
+    if args.command == "inventory":
+        return cmd_inventory(cfg, args.inventory, dry_run=args.dry_run)
     return cmd_demo(cfg, day)
 
 
