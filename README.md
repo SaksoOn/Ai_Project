@@ -30,6 +30,22 @@
 
 두 파일 모두 **수식을 실제 계산시켜 검증**했다. `python3 -m engine.products.verify`
 
+## 전자결재
+
+사내 그룹웨어에서 실제로 쓰는 건 메신저와 전자결재뿐이다. 그중 **전자결재만**
+자체 구축한다 — 메신저는 무료 대체재가 압도적이라 만들 이유가 없다.
+
+품의·기안·계출·출장명령서를 YAML로 정의하고, 값을 채우면 붙여넣기용 평문과
+인쇄용 A4 HTML이 나온다. 서버도 사내 승인도 필요 없다.
+
+```bash
+python3 -m engine.approval.generate new 출장명령서
+python3 -m engine.approval.generate build drafts/....yaml
+```
+
+자세한 내용은 [`engine/approval/README.md`](./engine/approval/README.md),
+범위를 왜 이렇게 잘랐는지는 [`DECISIONS.md`](./DECISIONS.md).
+
 ## 아키텍처: 엑셀은 UI, 파이썬은 자동화
 
 | 역할 | 도구 | 이유 |

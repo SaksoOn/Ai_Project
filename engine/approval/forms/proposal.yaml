@@ -1,0 +1,30 @@
+# 품의서 — 지출·구매 승인. 일반적인 표준 양식.
+#
+# ⚠️ 사내 전결 규정 금액이 다르면 forms.local/ 에 복사해 고치세요.
+#
+# 품의서는 세무 증빙으로 쓰이는 문서다. 금액·지급처·지급예정일은
+# 나중에 감사나 세무조사에서 실제로 찾게 되는 값이므로 필수로 둔다.
+
+code: PROPOSAL
+name: 품의서
+version: 1
+
+fields:
+  - {key: reason,     label: 품의사유, type: textarea, rows: 5, required: true}
+  - {key: amount,     label: 금액,     type: money,    required: true}
+  - {key: payee,      label: 지급처,   type: text,     required: true}
+  - {key: pay_on,     label: 지급예정일, type: date}
+  - {key: budget_acct, label: 예산과목, type: text}
+  - key: pay_method
+    label: 지급방법
+    type: select
+    options: [계좌이체, 법인카드, 현금, 기타]
+  - {key: detail,     label: 상세내역, type: textarea, rows: 8}
+
+approval_line:
+  default: [팀장, 부서장, 대표]
+  rules:
+    - when: "amount > 10000000"
+      line: [팀장, 부서장, 재무팀장, 대표]
+    - when: "amount > 1000000"
+      line: [팀장, 부서장, 재무팀장]

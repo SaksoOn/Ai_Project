@@ -1,0 +1,33 @@
+# 출장명령서 — 일반적인 표준 양식.
+#
+# ⚠️ 사내 실제 규정(금액 기준·직위명)이 다르면 이 파일을 고치지 말고
+#    저장소 루트의 forms.local/ 에 같은 code 로 복사해 고치세요.
+#    forms.local/ 은 gitignore 됩니다 — 회사 규정이 저장소에 올라가지 않습니다.
+
+code: TRIP_ORDER
+name: 출장명령서
+version: 1
+
+fields:
+  - {key: purpose,    label: 출장목적, type: text,     required: true}
+  - {key: dest,       label: 출장지,   type: text,     required: true}
+  - {key: date_from,  label: 출발일,   type: date,     required: true}
+  - {key: date_to,    label: 복귀일,   type: date,     required: true}
+  - {key: companions, label: 동행자,   type: user_list, hint: "쉼표로 구분"}
+  - key: transport
+    label: 교통편
+    type: select
+    options: [자가용, 항공, 철도, 버스, 기타]
+  - {key: budget,     label: 예상경비, type: money,    required: true}
+  - {key: detail,     label: 세부일정, type: textarea, rows: 8}
+
+approval_line:
+  # 위에서부터 먼저 맞는 규칙이 이긴다. 좁은 조건을 위에 둘 것.
+  # 기본 결재선과 같은 결과를 내는 규칙은 쓰지 말 것 — 읽는 사람이
+  # 무언가 달라진다고 오해한다.
+  default: [팀장, 부서장]
+  rules:
+    - when: "budget > 3000000"
+      line: [팀장, 부서장, 재무팀장, 대표]
+    - when: "transport == '항공'"
+      line: [팀장, 부서장, 대표]

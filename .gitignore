@@ -3,3 +3,8 @@ dist/*.xlsx
 __pycache__/
 *.pyc
 .DS_Store
+
+# 전자결재 — 전부 회사 데이터가 들어간다. 저장소에는 도구만 올린다.
+drafts/
+dist/approval/
+forms.local/

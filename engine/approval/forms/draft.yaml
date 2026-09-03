@@ -1,0 +1,19 @@
+# 기안서 — 일반 안건 상신. 일반적인 표준 양식.
+#
+# 품의서와의 차이: 품의는 '지출을 승인해 달라', 기안은 '이 계획이 타당한지
+# 검토해 달라'다. 그래서 금액 대신 배경·기대효과가 핵심 필드가 된다.
+
+code: DRAFT
+name: 기안서
+version: 1
+
+fields:
+  - {key: background, label: 배경,     type: textarea, rows: 5, required: true}
+  - {key: content,    label: 내용,     type: textarea, rows: 10, required: true}
+  - {key: effect,     label: 기대효과, type: textarea, rows: 4}
+  - {key: start_on,   label: 시행일,   type: date}
+  - {key: related,    label: 관련부서, type: user_list, hint: "쉼표로 구분"}
+  - {key: reference,  label: 관련근거, type: text, hint: "관련 규정·이전 문서번호"}
+
+approval_line:
+  default: [팀장, 부서장, 대표]

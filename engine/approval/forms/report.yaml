@@ -1,0 +1,27 @@
+# 계출서 — 신고·보고. 일반적인 표준 양식.
+#
+# 계출은 승인을 구하는 게 아니라 '이런 일이 있었음을 알린다'에 가깝다.
+# 그래서 결재선이 품의·기안보다 짧다.
+
+code: REPORT
+name: 계출서
+version: 1
+
+fields:
+  - key: kind
+    label: 계출구분
+    type: select
+    options: [사고, 변경, 지연, 손실, 기타]
+    required: true
+  - {key: occurred_on, label: 발생일,   type: date, required: true}
+  - {key: reason,      label: 사유,     type: textarea, rows: 6, required: true}
+  - {key: impact,      label: 영향,     type: textarea, rows: 4}
+  - {key: action,      label: 조치사항, type: textarea, rows: 6, required: true}
+  - {key: attachment,  label: 첨부,     type: text, hint: "첨부 파일명 — 파일은 별도 제출"}
+
+approval_line:
+  default: [팀장, 부서장]
+  rules:
+    # 사고·손실은 대표까지 올라가는 것이 일반적이다.
+    - when: "kind in ['사고', '손실']"
+      line: [팀장, 부서장, 대표]

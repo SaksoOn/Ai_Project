@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import codecs
 import sys
+import unicodedata
 
 # 기본 'replace'는 전부 '?'로 만든다. 문장부호가 통째로 '?'가 되면 죽지는 않아도
 # 읽을 수가 없다. 뜻이 남는 ASCII 등가물로 떨어뜨린다.
@@ -62,3 +63,17 @@ def marks() -> tuple[str, str]:
 
 
 PASS, FAIL = marks()
+
+
+def width(text: str) -> int:
+    """터미널에서 차지하는 칸 수. 한글·한자는 두 칸이다.
+
+    `len()`으로 표를 맞추면 한글 열이 전부 어긋난다 — '계출서'는 세 글자지만
+    여섯 칸을 쓴다. 목록 출력이 삐뚤어지면 읽는 사람이 열을 잘못 짚는다.
+    """
+    return sum(2 if unicodedata.east_asian_width(ch) in "WF" else 1 for ch in text)
+
+
+def pad(text: str, columns: int) -> str:
+    """`f"{text:<10}"` 의 한글 안전 버전. 모자라면 오른쪽을 공백으로 채운다."""
+    return text + " " * max(0, columns - width(text))

@@ -1,5 +1,21 @@
 # 개발 환경
 
+## 전자결재 (Python)
+
+```bash
+pip install PyYAML
+python3 -m engine.approval.generate doctor           # 환경 진단
+python3 -m engine.approval.generate list             # 양식 목록
+python3 -m engine.approval.generate new 출장명령서    # 초안 생성 → drafts/
+python3 -m engine.approval.generate build drafts/... # 문서 생성 → dist/approval/
+python3 -m unittest discover -s tests -t .           # 테스트
+```
+
+자세한 내용은 [`engine/approval/README.md`](./engine/approval/README.md).
+
+사내 실제 전결 규정은 `forms.local/` 에 둔다 — gitignore 돼 있어서 저장소에 안 올라간다.
+`drafts/`, `dist/approval/` 도 마찬가지다. 회사 데이터가 들어가는 곳은 전부 막아뒀다.
+
 ## 개인 도구 시트 (Python)
 
 ```bash
